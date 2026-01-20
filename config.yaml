@@ -4,7 +4,7 @@ cameras:
   '2': '0'
   '3': ''
   '4': ''
-chat_id: 62895359474947@c.us
+chat_id: 62895359xxxxxx@c.us
 confidence: 0.85
 cooldown: 30
 modbus_baud: 9600
@@ -25,3 +25,4 @@ telegram_enabled: false
 telegram_token: 8277840015:AAGpvC3GuhTLFBDVg4MfCnXIKwEg8Z1-2l0
 waha_enabled: false
 waha_url: http://localhost:3001/api/sendImage
+
