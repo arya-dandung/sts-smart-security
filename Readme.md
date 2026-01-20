@@ -62,3 +62,12 @@ Buka terminal dan jalankan perintah ini untuk mengambil kode program:
 ```bash
 git clone [https://github.com/arya-dandung/sts-smart-security.git](https://github.com/arya-dandung/sts-smart-security.git)
 cd sts-smart-security
+```
+### Langkah 3: Setup Environment Python
+Sangat disarankan menggunakan Virtual Environment agar library tidak bentrok dengan sistem lain.
+
+**Untuk Windows:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
