@@ -1,42 +1,58 @@
 import ollama
+import time
 
-# 1. Definisikan Model yang digunakan (harus sesuai yang didownload di Langkah 2)
+# PENTING: Ganti string ini sesuai model yang sudah Anda download
+# Bisa 'llama3', 'llama3.2', 'mistral', dsb.
 MODEL_NAME = "llama3" 
 
-# 2. Simulasi Data (Bayangkan ini output dari YOLOv8 + Timestamp)
-data_deteksi = {
-    "lokasi": "Halaman Belakang",
-    "waktu": "02:45 AM (Dini Hari)",
-    "objek_terdeteksi": ["seseorang", "linggis", "wajah tertutup"],
-    "status_pintu": "Terkunci"
+# Data simulasi (Ceritanya ini data dari sensor/kamera)
+data_masuk = {
+    "sensor": "Kamera Garasi",
+    "jam": "03:15 WIB",
+    "deteksi_visual": "Seseorang memakai hoodie hitam, membawa senter",
+    "status_rumah": "Penghuni sedang tidur"
 }
 
-# 3. Buat Prompt (Instruksi untuk AI)
-# Kita masukkan data deteksi ke dalam string prompt
-prompt_text = f"""
-Anda adalah asisten keamanan AI yang cerdas.
-Analisa data deteksi keamanan berikut ini:
-- Lokasi: {data_deteksi['lokasi']}
-- Waktu: {data_deteksi['waktu']}
-- Objek: {', '.join(data_deteksi['objek_terdeteksi'])}
-- Status Pintu: {data_deteksi['status_pintu']}
+print(f"--- Memulai koneksi ke model {MODEL_NAME}... ---")
+start_time = time.time()
 
-Tugas Anda:
-1. Tentukan tingkat bahaya (Rendah/Sedang/Tinggi).
-2. Berikan rekomendasi tindakan singkat dalam bahasa Indonesia.
-3. Jangan bertele-tele.
-"""
+try:
+    # Mengirim request ke Local LLM
+    response = ollama.chat(model=MODEL_NAME, messages=[
+      {
+        'role': 'user',
+        'content': f"""
+        Bertindaklah sebagai Sistem Keamanan Cerdas.
+        Analisa data berikut secara singkat dan tegas:
+        
+        Lokasi: {data_masuk['sensor']}
+        Waktu: {data_masuk['jam']}
+        Visual: {data_masuk['deteksi_visual']}
+        Status: {data_masuk['status_rumah']}
+        
+        Berikan output format JSON saja dengan key: 
+        1. tingkat_bahaya (Rendah/Sedang/Tinggi/Kritis)
+        2. analisis_singkat
+        3. rekomendasi_tindakan
+        """
+      },
+    ])
 
-print("--- Mengirim data ke AI... ---")
+    end_time = time.time()
+    durasi = end_time - start_time
 
-# 4. Kirim ke Ollama
-response = ollama.chat(model=MODEL_NAME, messages=[
-  {
-    'role': 'user',
-    'content': prompt_text,
-  },
-])
+    # Menampilkan hasil
+    print("\n" + "="*30)
+    print("HASIL ANALISA AI:")
+    print("="*30)
+    print(response['message']['content'])
+    print("="*30)
+    print(f"Waktu proses: {durasi:.2f} detik")
 
-# 5. Tampilkan Hasil
-print("\n--- HASIL ANALISA AI ---")
-print(response['message']['content'])
+except ollama.ResponseError as e:
+    print(f"\nERROR: Model '{MODEL_NAME}' tidak ditemukan.")
+    print("Pastikan Anda sudah mengetik 'ollama pull llama3' di terminal.")
+except Exception as e:
+    print(f"\nERROR: Gagal terhubung ke Ollama.")
+    print(f"Penyebab: {e}")
+    print("Pastikan aplikasi Ollama sudah berjalan (cek system tray).")
