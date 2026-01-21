@@ -1,58 +1,65 @@
 import ollama
-import time
+import requests # Diperlukan untuk kirim ke WAHA
+import json
 
-# PENTING: Ganti string ini sesuai model yang sudah Anda download
-# Bisa 'llama3', 'llama3.2', 'mistral', dsb.
-MODEL_NAME = "llama3" 
+# --- KONFIGURASI WAHA ---
+WAHA_URL = "http://localhost:3000/api/sendText" # Sesuaikan port WAHA kamu
+SESSION_ID = "default" # Session ID di WAHA
+TARGET_PHONE = "628xxxxxxxxx" # Ganti dengan nomor WhatsApp tujuan
 
-# Data simulasi (Ceritanya ini data dari sensor/kamera)
-data_masuk = {
-    "sensor": "Kamera Garasi",
-    "jam": "03:15 WIB",
-    "deteksi_visual": "Seseorang memakai hoodie hitam, membawa senter",
-    "status_rumah": "Penghuni sedang tidur"
+# --- DATA SIMULASI (Dari YOLOv8) ---
+data_cctv = {
+    "lokasi": "Area Parkir Depan",
+    "waktu": "21/01/2026 15:45 WIB",
+    "objek": "Seseorang, Linggis",
+    "akurasi": "88%"
 }
 
-print(f"--- Memulai koneksi ke model {MODEL_NAME}... ---")
-start_time = time.time()
+# --- 1. SUSUN PROMPT ---
+prompt_system = f"""
+Bertindaklah sebagai Sistem Peringatan Dini Otomatis.
 
-try:
-    # Mengirim request ke Local LLM
-    response = ollama.chat(model=MODEL_NAME, messages=[
-      {
-        'role': 'user',
-        'content': f"""
-        Bertindaklah sebagai Sistem Keamanan Cerdas.
-        Analisa data berikut secara singkat dan tegas:
-        
-        Lokasi: {data_masuk['sensor']}
-        Waktu: {data_masuk['jam']}
-        Visual: {data_masuk['deteksi_visual']}
-        Status: {data_masuk['status_rumah']}
-        
-        Berikan output format JSON saja dengan key: 
-        1. tingkat_bahaya (Rendah/Sedang/Tinggi/Kritis)
-        2. analisis_singkat
-        3. rekomendasi_tindakan
-        """
-      },
-    ])
+Instruksi Format Output (Wajib Markdown WhatsApp):
+1. Mulai langsung dengan judul: *🚨 PERINGATAN KEAMANAN DETEKSI*
+2. Gunakan emoji yang sesuai.
+3. Gunakan format list untuk detail.
+4. Gunakan tanda *bintang* untuk menebalkan poin penting.
+5. JANGAN ada teks lain selain pesan peringatan itu sendiri.
 
-    end_time = time.time()
-    durasi = end_time - start_time
+Data Deteksi:
+- Lokasi: {data_cctv['lokasi']}
+- Waktu: {data_cctv['waktu']}
+- Objek Terdeteksi: {data_cctv['objek']}
+- Tingkat Akurasi: {data_cctv['akurasi']}
 
-    # Menampilkan hasil
-    print("\n" + "="*30)
-    print("HASIL ANALISA AI:")
-    print("="*30)
-    print(response['message']['content'])
-    print("="*30)
-    print(f"Waktu proses: {durasi:.2f} detik")
+Berikan analisa resiko singkat (1 kalimat) dan rekomendasi tindakan (1 kalimat).
+"""
 
-except ollama.ResponseError as e:
-    print(f"\nERROR: Model '{MODEL_NAME}' tidak ditemukan.")
-    print("Pastikan Anda sudah mengetik 'ollama pull llama3' di terminal.")
-except Exception as e:
-    print(f"\nERROR: Gagal terhubung ke Ollama.")
-    print(f"Penyebab: {e}")
-    print("Pastikan aplikasi Ollama sudah berjalan (cek system tray).")
+print("--- Meminta pesan ke AI... ---")
+
+# --- 2. GENERATE PESAN DENGAN OLLAMA ---
+response = ollama.chat(model='llama3', messages=[
+  {'role': 'user', 'content': prompt_system},
+])
+
+# Ambil hasil bersih
+pesan_whatsapp = response['message']['content']
+
+print("\n--- PREVIEW PESAN WHATSAPP ---")
+print(pesan_whatsapp)
+print("------------------------------")
+
+# --- 3. KIRIM KE WAHA (Opsional/Uncomment jika WAHA sudah jalan) ---
+# payload = {
+#     "chatId": f"{TARGET_PHONE}@c.us",
+#     "text": pesan_whatsapp,
+#     "session": SESSION_ID
+# }
+# try:
+#     res = requests.post(WAHA_URL, json=payload)
+#     if res.status_code == 201:
+#         print("✅ Sukses terkirim ke WhatsApp!")
+#     else:
+#         print(f"❌ Gagal kirim: {res.text}")
+# except Exception as e:
+#     print(f"❌ Error koneksi WAHA: {e}")
